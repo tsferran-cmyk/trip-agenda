@@ -1,11 +1,20 @@
 const $=id=>document.getElementById(id);
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random().toString(16).slice(2);
-let data=JSON.parse(localStorage.getItem('japanActivities.v9')||localStorage.getItem('japanActivities.v8')||localStorage.getItem('japanActivities.v7')||localStorage.getItem('japanActivities.v6')||localStorage.getItem('japanActivities.v5')||'[]');
+let data=JSON.parse(localStorage.getItem('japanActivities.v10')||localStorage.getItem('japanActivities.v9')||localStorage.getItem('japanActivities.v8')||localStorage.getItem('japanActivities.v7')||localStorage.getItem('japanActivities.v6')||localStorage.getItem('japanActivities.v5')||'[]');
 let lang=localStorage.getItem('japanActivities.lang')||'ca';
 let refPoint=null, refCity='', refLabel='', editingId=null, selectedGeo=null;
 const T={ca:{title:'Activitats Japó',filtersTitle:'Filtres',nearMe:'📍 Prop de mi',addressPh:'Adreça o zona: Osaka Station',searchAddress:'Buscar adreça',addActivity:'+ Afegir',noRef:'Referència: sense ubicació. Pots filtrar igualment; la distància sortirà quan indiquis un punt.',empty:'No hi ha activitats amb aquests filtres.',sameCity:'Només mateixa ciutat que la referència',allCities:'Totes ciutats',allWhen:'Qualsevol moment',allCats:'Tots tipus',pending:'Pendents',all:'Tot',done:'Fet',discarded:'Descartat',sortDistance:'Ordena: distància',sortCity:'Ordena: ciutat',sortActivity:'Ordena: activitat',sortWhen:'Ordena: quan',sortDuration:'Ordena: duració',sortPrice:'Ordena: preu',searchPh:'Filtrar text',loadSample:'Carrega exemple',importCsv:'Importa CSV',exportCsv:'Exporta CSV',clearAll:'Esborra tot',edit:'Edita',delete:'Esborra',save:'Desa',activity:'Activitat',city:'Ciutat',zone:'Zona',addressMaps:'Adreça per Google Maps',durationPh:'Duració: 1h30',pricePh:'Preu: 2100 ¥ / Gratis',catPh:'Tipus: Anime, Temple...',notes:'Notes',placeSearchPh:'Busca lloc: Senso-ji, Tokyo',searchPlace:'Busca',placeSearching:'Buscant...',placeError:'No s’ha pogut buscar el lloc.',placeNoResults:'Cap resultat.',placeSelected:'Lloc seleccionat amb coordenades.',locating:'Localitzant...',refCurrent:'Referència: ubicació actual',refAddress:'Referència: ',addrError:'No he trobat aquesta adreça.',geoError:'No s’ha pogut obtenir la ubicació.',sampleLoaded:'Exemple carregat.',confirmClear:'Vols esborrar totes les activitats?',confirmDelete:'Vols esborrar aquesta activitat?',maps:'Maps'},en:{title:'Japan Activities',filtersTitle:'Filters',nearMe:'📍 Near me',addressPh:'Address or area: Osaka Station',searchAddress:'Search address',addActivity:'+ Add',noRef:'Reference: no location. You can still filter; distance appears after setting a point.',empty:'No activities match these filters.',sameCity:'Only same city as reference',allCities:'All cities',allWhen:'Any time',allCats:'All types',pending:'Pending',all:'All',done:'Done',discarded:'Discarded',sortDistance:'Sort: distance',sortCity:'Sort: city',sortActivity:'Sort: activity',sortWhen:'Sort: when',sortDuration:'Sort: duration',sortPrice:'Sort: price',searchPh:'Filter text',loadSample:'Load sample',importCsv:'Import CSV',exportCsv:'Export CSV',clearAll:'Clear all',edit:'Edit',delete:'Delete',save:'Save',activity:'Activity',city:'City',zone:'Area',addressMaps:'Google Maps address',durationPh:'Duration: 1h30',pricePh:'Price: 2100 ¥ / Free',catPh:'Type: Anime, Temple...',notes:'Notes',placeSearchPh:'Search place: Senso-ji, Tokyo',searchPlace:'Search',placeSearching:'Searching...',placeError:'Could not search place.',placeNoResults:'No results.',placeSelected:'Selected place with coordinates.',locating:'Locating...',refCurrent:'Reference: current location',refAddress:'Reference: ',addrError:'Address not found.',geoError:'Could not get location.',sampleLoaded:'Sample loaded.',confirmClear:'Delete all activities?',confirmDelete:'Delete this activity?',maps:'Maps'}};
 function tr(k){return T[lang][k]||T.ca[k]||k} function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
-function save(){localStorage.setItem('japanActivities.v9',JSON.stringify(data))}
+function cleanData(){
+  data=(Array.isArray(data)?data:[]).filter(i=>{
+    if(!i || typeof i!=='object') return false;
+    const activity=String(i.activity||'').trim();
+    const city=String(i.city||'').trim();
+    if(!activity || !city) return false;
+    return true;
+  });
+}
+function save(){cleanData();localStorage.setItem('japanActivities.v10',JSON.stringify(data))}
 function applyLang(){document.documentElement.lang=lang;$('lang').value=lang;document.querySelectorAll('[data-i18n]').forEach(e=>e.textContent=tr(e.dataset.i18n));document.querySelectorAll('[data-i18n-placeholder]').forEach(e=>e.placeholder=tr(e.dataset.i18nPlaceholder));render()}
 function hav(a,b,c,d){const R=6371,toRad=x=>x*Math.PI/180;const dLat=toRad(c-a),dLng=toRad(d-b);const x=Math.sin(dLat/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLng/2)**2;return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
 function getDistance(i){return refPoint&&i.lat&&i.lng?hav(refPoint.lat,refPoint.lng,i.lat,i.lng):null}
@@ -36,7 +45,80 @@ async function searchPlace(){const q=$('placeSearch').value.trim();if(!q)return;
 function choosePlace(p){selectedGeo={lat:p.lat,lng:p.lng};if(!$('fActivity').value.trim())$('fActivity').value=p.name;$('fAddress').value=p.label;const city=guessCity(p.address,p.label,$('placeSearch').value),zone=guessZone(p.address);if(city&&!$('fCity').value.trim())$('fCity').value=city;if(zone&&!$('fZone').value.trim())$('fZone').value=zone;$('selectedPlace').textContent=`${tr('placeSelected')} (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`;$('selectedPlace').classList.remove('hidden');$('placeResults').classList.add('hidden')}
 function sample(){data=[{id:uid(),city:'Tokyo',zone:'Asakusa',activity:'Senso-ji',address:'Senso-ji, Asakusa, Tokyo',when:'Matí',duration:'1h30',price:'Gratis',category:'Temple',lat:35.7148,lng:139.7967,done:false,discarded:false,notes:''},{id:uid(),city:'Tokyo',zone:'Akihabara',activity:'Akihabara',address:'Akihabara, Tokyo',when:'Tarda',duration:'3h',price:'Variable',category:'Anime',lat:35.6984,lng:139.7730,done:false,discarded:false,notes:''},{id:uid(),city:'Osaka',zone:'Umeda',activity:'Umeda Sky Building',address:'Umeda Sky Building, Osaka',when:'Tarda',duration:'1h30',price:'2000 ¥',category:'Mirador',lat:34.7053,lng:135.4905,done:false,discarded:false,notes:''},{id:uid(),city:'Osaka',zone:'Namba',activity:'Dotonbori',address:'Dotonbori, Osaka',when:'Nit',duration:'2h',price:'Variable',category:'Menjar',lat:34.6687,lng:135.5013,done:false,discarded:false,notes:''}];save();render();$('refStatus').textContent=tr('sampleLoaded')}
 function toCsv(){const cols=['city','zone','activity','address','when','duration','price','category','lat','lng','done','discarded','notes'];const rows=[cols.join(',')].concat(data.map(o=>cols.map(c=>'"'+String(o[c]??'').replace(/"/g,'""')+'"').join(',')));const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='activitats-japo.csv';a.click();URL.revokeObjectURL(a.href)}
-function parseCsv(text){const lines=text.split(/\r?\n/).filter(Boolean);const headers=lines.shift().split(',').map(x=>x.replace(/^"|"$/g,''));return lines.map(line=>{let vals=[],cur='',q=false;for(let c of line){if(c==='"')q=!q;else if(c===','&&!q){vals.push(cur);cur=''}else cur+=c}vals.push(cur);let o={id:uid(),done:false,discarded:false};headers.forEach((h,idx)=>{let v=(vals[idx]||'').replace(/""/g,'"');if(['lat','lng'].includes(h))v=v?+v:null;if(['done','discarded'].includes(h))v=v==='true'||v==='1'||v==='sí';o[h]=v});return o})}
+function parseCsv(text){
+  // Parser CSV robust: suporta comes dins de camps entre cometes, BOM i capçaleres alternatives.
+  text=String(text||'').replace(/^\uFEFF/,'').trim();
+  if(!text)return [];
+  const rows=[];let row=[],cur='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i],n=text[i+1];
+    if(c==='"'){
+      if(q && n==='"'){cur+='"';i++;}
+      else q=!q;
+    }else if(c===','&&!q){
+      row.push(cur);cur='';
+    }else if((c==='\n'||c==='\r')&&!q){
+      if(c==='\r'&&n==='\n')i++;
+      row.push(cur);cur='';
+      if(row.some(v=>String(v).trim()!==''))rows.push(row);
+      row=[];
+    }else cur+=c;
+  }
+  row.push(cur);
+  if(row.some(v=>String(v).trim()!==''))rows.push(row);
+  if(!rows.length)return [];
+  const rawHeaders=rows.shift().map(h=>String(h||'').replace(/^\uFEFF/,'').trim());
+  const keyOf=h=>{
+    const x=norm(h).replace(/\s+/g,' ');
+    if(['city','ciutat','ciutat/zona'].includes(x))return 'city';
+    if(['zone','zona','area'].includes(x))return 'zone';
+    if(['activity','activitat','lloc / activitat','lloc/activitat','lloc','nom'].includes(x))return 'activity';
+    if(['address','adreca','adreça','adreca per google maps','adreça per google maps','google maps address'].includes(x))return 'address';
+    if(['when','quan','moment','moment del dia'].includes(x))return 'when';
+    if(['duration','duracio','duració','temps estimat'].includes(x))return 'duration';
+    if(['price','preu','preu mig'].includes(x))return 'price';
+    if(['category','categoria','tipus'].includes(x))return 'category';
+    if(['lat','latitude','latitud'].includes(x))return 'lat';
+    if(['lng','lon','long','longitude','longitud'].includes(x))return 'lng';
+    if(['done','fet','feta'].includes(x))return 'done';
+    if(['discarded','descartat','descartada'].includes(x))return 'discarded';
+    if(['notes','nota','descripcio','descripció'].includes(x))return 'notes';
+    if(['es transport?','transport','és transport?'].includes(x))return 'isTransport';
+    if(['on dormir','dormir'].includes(x))return 'sleep';
+    return x;
+  };
+  const headers=rawHeaders.map(keyOf);
+  const out=[];
+  for(const vals of rows){
+    let raw={};
+    headers.forEach((h,idx)=>raw[h]=(vals[idx]??'').trim());
+    const isTransport=norm(raw.isTransport);
+    const sleep=norm(raw.sleep);
+    if(['si','sí','yes','true','1'].includes(isTransport))continue;
+    if(sleep && !raw.activity)continue;
+    let o={id:uid(),done:false,discarded:false};
+    o.city=raw.city||'';
+    if(!raw.zone && o.city.includes(' - ')){
+      const parts=o.city.split(' - ');
+      o.city=parts[0].trim();
+      o.zone=parts.slice(1).join(' - ').trim();
+    }else o.zone=raw.zone||'';
+    o.activity=raw.activity||'';
+    o.address=raw.address||(o.activity&&o.city?`${o.activity}, ${o.city}`:'');
+    o.when=raw.when||'';
+    o.duration=raw.duration||'';
+    o.price=raw.price||'';
+    o.category=raw.category||'';
+    o.notes=raw.notes||'';
+    o.lat=raw.lat?Number(String(raw.lat).replace(',','.')):null;
+    o.lng=raw.lng?Number(String(raw.lng).replace(',','.')):null;
+    o.done=['true','1','si','sí','yes'].includes(norm(raw.done));
+    o.discarded=['true','1','si','sí','yes'].includes(norm(raw.discarded));
+    if(!o.activity || !o.city)continue;
+    out.push(o);
+  }
+  return out;
+}
 $('lang').onchange=e=>{lang=e.target.value;localStorage.setItem('japanActivities.lang',lang);applyLang()};$('filtersBtn').onclick=()=>$('filtersDialog').showModal();$('closeFilters').onclick=()=>$('filtersDialog').close();
 $('locateBtn').onclick=()=>{if(!navigator.geolocation){$('refStatus').textContent=tr('geoError');return}$('refStatus').textContent=tr('locating');navigator.geolocation.getCurrentPosition(async p=>{refPoint={lat:p.coords.latitude,lng:p.coords.longitude,label:'current'};refCity='';refLabel='current';try{const r=await reverseGeocode(refPoint.lat,refPoint.lng);refLabel=r.label;refCity=guessCity(r.address,r.label);$('refStatus').textContent=`${tr('refCurrent')}${refCity?' · '+refCity:''}`}catch(e){$('refStatus').textContent=tr('refCurrent')}render()},()=>{$('refStatus').textContent=tr('geoError')},{enableHighAccuracy:true,timeout:10000})};
 $('addressBtn').onclick=setAddressRef;$('refAddress').addEventListener('keydown',e=>{if(e.key==='Enter')setAddressRef()});$('clearRef').onclick=()=>{$('refAddress').value='';refPoint=null;refCity='';refLabel='';$('refStatus').textContent=tr('noRef');render();$('refAddress').focus()};$('addBtn').onclick=()=>openEdit();$('cancelEdit').onclick=()=>$('editDialog').close();$('deleteEdit').onclick=()=>{if(!editingId)return;if(confirm(tr('confirmDelete'))){data=data.filter(x=>x.id!==editingId);save();$('editDialog').close();render()}};
@@ -44,5 +126,6 @@ $('placeSearchBtn').onclick=searchPlace;$('placeSearch').addEventListener('keydo
 $('saveEdit').onclick=()=>{const old=editingId?data.find(x=>x.id===editingId):null;const o={id:editingId||uid(),activity:$('fActivity').value,city:$('fCity').value,zone:$('fZone').value,address:$('fAddress').value,when:$('fWhen').value,duration:$('fDuration').value,price:$('fPrice').value,category:$('fCategory').value,notes:$('fNotes').value,done:$('fDone').checked,discarded:$('fDiscarded').checked,lat:selectedGeo?.lat??old?.lat??null,lng:selectedGeo?.lng??old?.lng??null};if(o.done)o.discarded=false;if(o.discarded)o.done=false;if(old)data=data.map(x=>x.id===editingId?o:x);else data.push(o);save();$('editDialog').close();render();if(o.address&&!o.lat){geocode(o.address,1).then(arr=>{const p=arr[0],it=data.find(x=>x.id===o.id);if(it){it.lat=p.lat;it.lng=p.lng;save();render()}}).catch(()=>{})}};
 $('list').onclick=e=>{const b=e.target.closest('button[data-act="edit"]');if(!b)return;openEdit(b.dataset.id)};['cityFilter','whenFilter','catFilter','statusFilter','sortBy','search','sameCity'].forEach(id=>$(id).addEventListener('input',render));
 $('sampleBtn').onclick=sample;$('exportBtn').onclick=toCsv;$('resetBtn').onclick=()=>{if(confirm(tr('confirmClear'))){data=[];save();render()}};$('csvFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;data=data.concat(parseCsv(await f.text()));save();render();e.target.value=''};
+cleanData();save();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
 applyLang();
