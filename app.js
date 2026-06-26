@@ -18,7 +18,7 @@ function refreshFilters(){const keep={city:$('cityFilter').value,wh:$('whenFilte
 function fillSel(id,vals,first,keep){const el=$(id);el.innerHTML=`<option value="">${first}</option>`+vals.sort().map(v=>`<option>${esc(v)}</option>`).join('');el.value=keep||''}
 function fmtDist(d){if(d==null)return '';if(d<1)return `${Math.round(d*1000)} m`;return `${d.toFixed(2).replace('.',',')} km`}
 function isSameRefCity(i){if(!refCity)return false;const rc=norm(refCity);return norm(i.city)===rc||norm(i.address).includes(rc)}
-function distClass(d,i){if(d==null)return '';if(isSameRefCity(i))return 'near';if(d<=50)return 'mid';return 'far'}
+function distClass(d,i){if(d==null)return '';if(d<5)return 'near';if(d<20)return 'ok';if(d<=50)return 'mid';return 'far'}
 const JPY_TO_EUR=0.0054, JPY_TO_MYR=0.0289;
 function fmtMoney(n){if(lang==='ca')return n.toLocaleString('ca-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';return 'RM '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function priceDisplay(p){const raw=String(p||'').trim();if(!raw)return '—';const n=priceNum(raw);if(!n||!/¥|yen|円|jpy/i.test(raw))return esc(raw);const conv=n*(lang==='ca'?JPY_TO_EUR:JPY_TO_MYR);return `${esc(raw)} <span class="conv">(${fmtMoney(conv)})</span>`}
