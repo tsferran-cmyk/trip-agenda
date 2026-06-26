@@ -1,0 +1,2 @@
+city,zone,activity,address,when,duration,price,category,importance,lat,lng,done,discarded,notes
+Tokyo,Asakusa,Senso-ji,"Senso-ji, Asakusa, Tokyo, Japan",Matí,1h30,Gratis,Temple,1,35.7148,139.7967,false,false,Exemple
