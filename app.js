@@ -59,7 +59,11 @@ function parseCsv(text){
   }
   row.push(cur); if(row.some(v=>String(v).trim()!==''))rows.push(row);
   if(!rows.length)return [];
-  const headers=rows.shift().map(h=>norm(h).replace(/\s+/g,''));
+  const cols=['city','zone','activity','address','when','duration','price','category','importance','lat','lng','done','discarded','notes'];
+  const first=rows[0]||[];
+  const headerNames=first.map(h=>norm(h).replace(/\s+/g,''));
+  const hasHeader=headerNames.some(h=>['city','ciutat','zone','zona','activity','activitat','address','adreca','when','quan','duration','duracio','price','preu','category','categoria','importance','importancia','lat','latitude','lng','longitude','done','fet','discarded','descartat','notes','nota'].includes(h));
+  const headers=hasHeader?rows.shift().map(h=>norm(h).replace(/\s+/g,'')):cols;
   const aliases={
     city:['city','ciutat'],zone:['zone','zona','area'],activity:['activity','activitat','lloc/activitat','lloc'],address:['address','adreca','adreçapergooglemaps','adreca per google maps','googlemapsaddress'],when:['when','quan','momentdeldia','moment'],duration:['duration','duracio','duració'],price:['price','preu'],category:['category','tipus','categoria'],importance:['importance','importancia','importància','prioritat','priority'],lat:['lat','latitude','latitud'],lng:['lng','lon','long','longitude','longitud'],done:['done','fet'],discarded:['discarded','descartat'],notes:['notes','nota','notas']
   };
