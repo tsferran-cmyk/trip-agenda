@@ -39,14 +39,17 @@ function choosePlace(p){selectedGeo={lat:p.lat,lng:p.lng};if(!$('fActivity').val
 function sample(){data=[{id:uid(),city:'Tokyo',zone:'Asakusa',activity:'Senso-ji',address:'Senso-ji, Asakusa, Tokyo',when:'Matí',duration:'1h30',price:'Gratis',category:'Temple',importance:'1',lat:35.7148,lng:139.7967,done:false,discarded:false,notes:''},{id:uid(),city:'Tokyo',zone:'Akihabara',activity:'Akihabara',address:'Akihabara, Tokyo',when:'Tarda',duration:'3h',price:'Variable',category:'Anime',importance:'1',lat:35.6984,lng:139.7730,done:false,discarded:false,notes:''},{id:uid(),city:'Osaka',zone:'Umeda',activity:'Umeda Sky Building',address:'Umeda Sky Building, Osaka',when:'Tarda',duration:'1h30',price:'2000 ¥',category:'Mirador',importance:'2',lat:34.7053,lng:135.4905,done:false,discarded:false,notes:''},{id:uid(),city:'Osaka',zone:'Namba',activity:'Dotonbori',address:'Dotonbori, Osaka',when:'Nit',duration:'2h',price:'Variable',category:'Menjar',importance:'2',lat:34.6687,lng:135.5013,done:false,discarded:false,notes:''}];save();render();$('refStatus').textContent=tr('sampleLoaded')}
 function toCsv(){const cols=['city','zone','activity','address','when','duration','price','category','importance','lat','lng','done','discarded','notes'];const rows=[cols.join(',')].concat(data.map(o=>cols.map(c=>'"'+String(o[c]??'').replace(/"/g,'""')+'"').join(',')));const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='activitats-japo.csv';a.click();URL.revokeObjectURL(a.href)}
 function parseCsv(text){
-  const rows=[];let row=[],cur='',q=false;
+  const rows=[];let row=[],cur='',q=false,separator=',';
   text=(text||'').replace(/^\uFEFF/,'');
+  const firstLine=text.split(/\r?\n/,1)[0]||'';
+  const separatorCounts={',':(firstLine.match(/,/g)||[]).length,';':(firstLine.match(/;/g)||[]).length,'\t':(firstLine.match(/\t/g)||[]).length};
+  separator=Object.keys(separatorCounts).sort((a,b)=>separatorCounts[b]-separatorCounts[a])[0]||',';
   for(let i=0;i<text.length;i++){
     const c=text[i],n=text[i+1];
     if(c==='"'){
       if(q&&n==='"'){cur+='"';i++;}
       else q=!q;
-    }else if(c===','&&!q){row.push(cur);cur='';}
+    }else if(c===separator&&!q){row.push(cur);cur='';}
     else if((c==='\n'||c==='\r')&&!q){
       if(c==='\r'&&n==='\n')i++;
       row.push(cur);cur='';
@@ -81,6 +84,6 @@ $('addressBtn').onclick=setAddressRef;$('refAddress').addEventListener('keydown'
 $('placeSearchBtn').onclick=searchPlace;$('placeSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchPlace()}});$('placeResults').onclick=e=>{const b=e.target.closest('.placeResult');if(!b)return;choosePlace($('placeResults')._places[+b.dataset.idx])};
 $('saveEdit').onclick=()=>{const old=editingId?data.find(x=>x.id===editingId):null;const o={id:editingId||uid(),activity:$('fActivity').value,city:$('fCity').value,zone:$('fZone').value,address:$('fAddress').value,when:$('fWhen').value,duration:$('fDuration').value,price:$('fPrice').value,category:$('fCategory').value,importance:$('fImportance').value||'3',notes:$('fNotes').value,done:$('fDone').checked,discarded:$('fDiscarded').checked,lat:selectedGeo?.lat??old?.lat??null,lng:selectedGeo?.lng??old?.lng??null};if(o.done)o.discarded=false;if(o.discarded)o.done=false;if(old)data=data.map(x=>x.id===editingId?o:x);else data.push(o);save();$('editDialog').close();render();if(o.address&&!o.lat){geocode(o.address,1).then(arr=>{const p=arr[0],it=data.find(x=>x.id===o.id);if(it){it.lat=p.lat;it.lng=p.lng;save();render()}}).catch(()=>{})}};
 $('list').onclick=e=>{const b=e.target.closest('button[data-act="edit"]');if(!b)return;openEdit(b.dataset.id)};['cityFilter','whenFilter','catFilter','importanceFilter','statusFilter','sortBy','search','sameCity'].forEach(id=>$(id).addEventListener('input',render));
-$('sampleBtn').onclick=sample;$('exportBtn').onclick=toCsv;$('resetBtn').onclick=()=>{if(confirm(tr('confirmClear'))){data=[];save();render()}};$('csvFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;data=data.concat(parseCsv(await f.text()));save();render();e.target.value=''};
+$('sampleBtn').onclick=sample;$('exportBtn').onclick=toCsv;$('resetBtn').onclick=()=>{if(confirm(tr('confirmClear'))){data=[];save();render()}};$('csvFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;const bytes=await f.arrayBuffer();let text=new TextDecoder('utf-8').decode(bytes);if(text.includes('\uFFFD'))text=new TextDecoder('windows-1252').decode(bytes);data=data.concat(parseCsv(text));save();render();e.target.value=''};
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
 applyLang();
